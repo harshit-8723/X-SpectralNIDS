@@ -1,0 +1,6 @@
+backend/__pycache__/
+backend/logs/
+backend/data/*.csv
+frontend/node_modules/
+frontend/dist/
+venv/
