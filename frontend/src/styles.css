@@ -1,178 +1,216 @@
-/* src/styles.css
-   Dark "monitoring console" token set — deliberately not the default
-   cream/terracotta AI-generated look. Data is monospace throughout so
-   numbers stay legible and don't jitter as digits change width.
-*/
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
 
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * X-SpectralNIDS design system — dark-first SOC console.
+ * All colors are oklch semantic tokens. Never hardcode colors in components.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: calc(var(--radius) - 1px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-normal: var(--normal);
+  --color-normal-foreground: var(--normal-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-attack: var(--attack);
+  --color-attack-foreground: var(--attack-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-research: var(--research);
+  --color-research-foreground: var(--research-foreground);
+  --color-critical: var(--critical);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  --font-sans:
+    "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* ---------------------------------------------------------------
+ * LIGHT THEME (default :root) — enterprise console, not an inversion.
+ * --------------------------------------------------------------- */
 :root {
-  --bg: #0b0e14;
-  --panel: #131722;
-  --panel-border: #232838;
-  --text: #e6e9ef;
-  --text-muted: #7c8698;
-  --accent-benign: #3ddc97;
-  --accent-alert: #ff4757;
-  --accent-warning: #ffb454;
-  --grid-line: #1c2231;
-  --font-mono: "JetBrains Mono", "SF Mono", "Roboto Mono", Consolas, monospace;
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --radius: 0.5rem;
+  color-scheme: light;
+
+  --background: oklch(0.98 0.004 250);
+  --foreground: oklch(0.26 0.02 253);
+  --surface: oklch(1 0 0);
+  --surface-foreground: oklch(0.26 0.02 253);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.26 0.02 253);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.26 0.02 253);
+
+  --primary: oklch(0.52 0.11 220);
+  --primary-foreground: oklch(0.99 0.003 250);
+  --secondary: oklch(0.95 0.006 250);
+  --secondary-foreground: oklch(0.3 0.02 253);
+  --muted: oklch(0.95 0.006 250);
+  --muted-foreground: oklch(0.48 0.017 252);
+  --accent: oklch(0.93 0.01 250);
+  --accent-foreground: oklch(0.26 0.02 253);
+
+  --destructive: oklch(0.53 0.2 25);
+  --destructive-foreground: oklch(0.99 0.005 25);
+
+  --normal: oklch(0.5 0.13 155);
+  --normal-foreground: oklch(0.99 0.004 250);
+  --warning: oklch(0.6 0.14 70);
+  --warning-foreground: oklch(0.99 0.004 250);
+  --attack: oklch(0.52 0.2 25);
+  --attack-foreground: oklch(0.99 0.005 25);
+  --critical: oklch(0.45 0.21 14);
+  --info: oklch(0.52 0.14 245);
+  --info-foreground: oklch(0.99 0.004 250);
+  --research: oklch(0.5 0.16 300);
+  --research-foreground: oklch(0.99 0.004 250);
+
+  --border: oklch(0.9 0.008 250);
+  --input: oklch(0.9 0.008 250);
+  --ring: oklch(0.52 0.11 220);
+
+  --chart-1: oklch(0.52 0.13 155);
+  --chart-2: oklch(0.53 0.2 25);
+  --chart-3: oklch(0.52 0.14 245);
+  --chart-4: oklch(0.62 0.14 70);
+  --chart-5: oklch(0.52 0.16 300);
+
+  --sidebar: oklch(0.965 0.005 250);
+  --sidebar-foreground: oklch(0.3 0.02 253);
+  --sidebar-primary: oklch(0.52 0.11 220);
+  --sidebar-primary-foreground: oklch(0.99 0.004 250);
+  --sidebar-accent: oklch(0.92 0.01 250);
+  --sidebar-accent-foreground: oklch(0.24 0.02 253);
+  --sidebar-border: oklch(0.9 0.008 250);
+  --sidebar-ring: oklch(0.52 0.11 220);
 }
 
-.nids-dashboard {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans);
-  padding: 20px;
-  min-height: 100vh;
-  box-sizing: border-box;
+/* ---------------------------------------------------------------
+ * DARK THEME — primary visual identity of the SOC console.
+ * --------------------------------------------------------------- */
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.17 0.017 253);
+  --foreground: oklch(0.93 0.008 250);
+  --surface: oklch(0.21 0.019 253);
+  --surface-foreground: oklch(0.93 0.008 250);
+  --card: oklch(0.21 0.019 253);
+  --card-foreground: oklch(0.93 0.008 250);
+  --popover: oklch(0.22 0.02 253);
+  --popover-foreground: oklch(0.93 0.008 250);
+
+  --primary: oklch(0.68 0.13 205);
+  --primary-foreground: oklch(0.16 0.02 253);
+  --secondary: oklch(0.27 0.021 253);
+  --secondary-foreground: oklch(0.9 0.01 250);
+  --muted: oklch(0.26 0.02 253);
+  --muted-foreground: oklch(0.66 0.018 252);
+  --accent: oklch(0.29 0.026 253);
+  --accent-foreground: oklch(0.94 0.008 250);
+
+  --destructive: oklch(0.58 0.2 25);
+  --destructive-foreground: oklch(0.97 0.01 25);
+
+  --normal: oklch(0.7 0.15 155);
+  --normal-foreground: oklch(0.16 0.02 253);
+  --warning: oklch(0.78 0.15 78);
+  --warning-foreground: oklch(0.16 0.02 253);
+  --attack: oklch(0.62 0.21 22);
+  --attack-foreground: oklch(0.97 0.01 25);
+  --critical: oklch(0.52 0.23 12);
+  --info: oklch(0.66 0.14 245);
+  --info-foreground: oklch(0.16 0.02 253);
+  --research: oklch(0.66 0.15 300);
+  --research-foreground: oklch(0.16 0.02 253);
+
+  --border: oklch(0.3 0.02 253);
+  --input: oklch(0.3 0.02 253);
+  --ring: oklch(0.68 0.13 205);
+
+  --chart-1: oklch(0.7 0.15 155);
+  --chart-2: oklch(0.62 0.21 22);
+  --chart-3: oklch(0.66 0.14 245);
+  --chart-4: oklch(0.78 0.15 78);
+  --chart-5: oklch(0.66 0.15 300);
+
+  --sidebar: oklch(0.19 0.018 253);
+  --sidebar-foreground: oklch(0.86 0.01 250);
+  --sidebar-primary: oklch(0.68 0.13 205);
+  --sidebar-primary-foreground: oklch(0.16 0.02 253);
+  --sidebar-accent: oklch(0.26 0.022 253);
+  --sidebar-accent-foreground: oklch(0.95 0.008 250);
+  --sidebar-border: oklch(0.28 0.02 253);
+  --sidebar-ring: oklch(0.68 0.13 205);
 }
 
-.nids-dashboard * {
-  box-sizing: border-box;
-}
 
-.nids-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.nids-title {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.nids-status {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 3px;
-  border: 1px solid var(--panel-border);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.nids-status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-
-.nids-status-dot.open { background: var(--accent-benign); }
-.nids-status-dot.connecting { background: var(--accent-warning); animation: pulse 1.2s infinite; }
-.nids-status-dot.closed,
-.nids-status-dot.error { background: var(--accent-alert); animation: pulse 1.2s infinite; }
-
-.nids-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-@media (max-width: 900px) {
-  .nids-grid { grid-template-columns: 1fr; }
-}
-
-.nids-panel {
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
-  padding: 14px 16px;
-}
-
-.nids-panel-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-.nids-mono {
-  font-family: var(--font-mono);
-}
-
-/* Alert panel */
-.nids-alert-panel.is-attack {
-  border-color: var(--accent-alert);
-  box-shadow: 0 0 0 1px var(--accent-alert), 0 0 24px rgba(255, 71, 87, 0.35);
-  animation: alert-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes alert-pulse {
-  0%, 100% { box-shadow: 0 0 0 1px var(--accent-alert), 0 0 18px rgba(255, 71, 87, 0.25); }
-  50% { box-shadow: 0 0 0 1px var(--accent-alert), 0 0 30px rgba(255, 71, 87, 0.5); }
-}
-
-.nids-alert-headline {
-  font-family: var(--font-mono);
-  font-size: 22px;
-  font-weight: 700;
-}
-
-.nids-alert-headline.benign { color: var(--accent-benign); }
-.nids-alert-headline.attack { color: var(--accent-alert); }
-
-.nids-alert-sub {
-  color: var(--text-muted);
-  font-size: 13px;
-  margin-top: 4px;
-}
-
-.nids-alert-history {
-  margin-top: 12px;
-  border-top: 1px solid var(--panel-border);
-  padding-top: 10px;
-}
-
-.nids-alert-history-item {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  display: flex;
-  justify-content: space-between;
-  padding: 3px 0;
-  color: var(--text-muted);
-}
-
-.nids-alert-history-item .label { color: var(--accent-alert); }
-
-/* Explanation panel */
-.nids-explanation-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.nids-zone-row {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  padding: 4px 0;
-}
-
-.nids-empty-state {
-  color: var(--text-muted);
-  font-size: 13px;
-  font-family: var(--font-mono);
-  padding: 20px 0;
-  text-align: center;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nids-status-dot.connecting,
-  .nids-status-dot.closed,
-  .nids-status-dot.error,
-  .nids-alert-panel.is-attack {
-    animation: none;
+@layer base {
+  * {
+    border-color: var(--color-border);
   }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.015em;
+  }
+}
+
+@utility panel {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
 }
