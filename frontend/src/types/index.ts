@@ -22,7 +22,7 @@ export interface Detection {
   attackType: string;
   prediction: Prediction;
   confidence: number;
-  severity: Severity;
+  severity: Severity | null;
   explanationAvailable?: boolean;
 }
 
@@ -91,7 +91,7 @@ export interface TrafficPoint {
   timestamp: string;
   normal: number;
   suspicious: number;
-  throughputMbps: number;
+  throughputMbps: number | null;
 }
 
 export interface AttackCategory {
@@ -142,7 +142,7 @@ export interface AlertRecord {
   id: string;
   detectionId: string;
   timestamp: string;
-  severity: Severity;
+  severity: Severity | null;
   attackType: string;
   source: string;
   destination: string;

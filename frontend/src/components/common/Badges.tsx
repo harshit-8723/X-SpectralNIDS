@@ -16,17 +16,26 @@ const severityIcon: Record<Severity, typeof AlertTriangle> = {
   critical: ShieldX,
 };
 
-export function SeverityBadge({ severity }: { severity: Severity }) {
-  const Icon = severityIcon[severity];
+export function SeverityBadge({ severity }: { severity: Severity | null | undefined }) {
+  const validSeverity = severity && severity in severityStyles ? severity : null;
+  if (!validSeverity) {
+    return (
+      <span className="inline-flex items-center rounded border border-border px-1.5 py-0.5 text-[11px] font-medium uppercase text-muted-foreground">
+        unavailable
+      </span>
+    );
+  }
+
+  const Icon = severityIcon[validSeverity];
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-medium uppercase",
-        severityStyles[severity],
+        severityStyles[validSeverity],
       )}
     >
       <Icon className="size-3" aria-hidden />
-      {severity}
+      {validSeverity}
     </span>
   );
 }

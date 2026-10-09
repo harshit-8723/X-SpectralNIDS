@@ -93,7 +93,9 @@ function Monitoring() {
         />
         <StatCard
           label="Throughput"
-          value={last ? `${last.throughputMbps.toFixed(1)} Mbps` : "—"}
+          value={
+            last?.throughputMbps == null ? "unavailable" : `${last.throughputMbps.toFixed(1)} Mbps`
+          }
           tone="info"
         />
         <StatCard
