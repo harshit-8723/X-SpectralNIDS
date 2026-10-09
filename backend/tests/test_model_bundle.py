@@ -75,3 +75,12 @@ def test_rejects_non_contiguous_label_indexes(synthetic_model_bundle):
 
     with pytest.raises(ValueError, match="contiguous starting at zero"):
         load_model_bundle(synthetic_model_bundle, "model_a")
+
+
+def test_rejects_display_only_or_target_feature_names(synthetic_model_bundle):
+    (synthetic_model_bundle / "feature_order.json").write_text(
+        json.dumps(["row_id", "feature_b"]), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="target, identifier, or display-only"):
+        load_model_bundle(synthetic_model_bundle, "model_a")

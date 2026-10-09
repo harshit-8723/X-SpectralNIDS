@@ -94,6 +94,27 @@ def load_model_bundle(model_dir: Path, model_name: str) -> ModelBundle:
     feature_order = tuple(feature_order_data)
     if len(set(feature_order)) != len(feature_order):
         raise ValueError("feature_order.json contains duplicate feature names")
+    display_only_names = {
+        "label",
+        "row_id",
+        "flow id",
+        "source",
+        "source ip",
+        "src ip",
+        "destination",
+        "destination ip",
+        "dest ip",
+        "dst ip",
+        "timestamp",
+    }
+    display_only_features = [
+        name for name in feature_order if name.strip().casefold() in display_only_names
+    ]
+    if display_only_features:
+        raise ValueError(
+            "feature_order.json contains target, identifier, or display-only fields: "
+            f"{display_only_features}"
+        )
 
     scaler_data = _read_json(directory / "scaler.json")
     if not isinstance(scaler_data, dict):

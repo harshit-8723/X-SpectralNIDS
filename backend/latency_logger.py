@@ -5,7 +5,6 @@ for your benchmarking section (df = pd.read_json(path, lines=True)).
 """
 
 import json
-import os
 import time
 from pathlib import Path
 
@@ -15,12 +14,13 @@ LOG_FILE = LOG_DIR / "latency_log.jsonl"
 LOG_DIR.mkdir(exist_ok=True)
 
 
-def log_latency(flow_index: int, latency_ms: dict, predicted_label: str) -> None:
+def log_latency(tick_index: int, latency: dict, model_name: str, lagging: bool) -> None:
     record = {
-        "flow_index": flow_index,
+        "tick_index": tick_index,
         "timestamp": time.time(),
-        "predicted_label": predicted_label,
-        **latency_ms,
+        "model_name": model_name,
+        "lagging": lagging,
+        **latency,
     }
     with open(LOG_FILE, "a") as f:
         f.write(json.dumps(record) + "\n")
