@@ -4,3 +4,4 @@ pandas
 websockets
 requests
 pydantic
+pytest
