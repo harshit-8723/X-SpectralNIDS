@@ -5,3 +5,6 @@ websockets
 requests
 pydantic
 pytest
+numpy
+scipy
+xgboost
