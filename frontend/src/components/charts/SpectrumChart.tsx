@@ -15,17 +15,20 @@ import { axisStyle, chartTooltipStyle } from "./chartTheme";
 export const SpectrumChart = memo(function SpectrumChart({
   data,
   dominantFrequency,
+  dominantBin,
   range,
   height = 240,
 }: {
   data: FrequencyFeature[];
   dominantFrequency?: number;
+  dominantBin?: number;
   range?: [number, number];
   height?: number;
 }) {
   const filtered = range
     ? data.filter((d) => d.frequency >= range[0] && d.frequency <= range[1])
     : data;
+  const selectedDominant = dominantBin ?? dominantFrequency;
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -42,12 +45,16 @@ export const SpectrumChart = memo(function SpectrumChart({
         <YAxis {...axisStyle} width={48} tickFormatter={(v) => Number(v).toFixed(2)} />
         <Tooltip
           {...chartTooltipStyle}
-          labelFormatter={(v) => `${Number(v).toFixed(2)} Hz`}
+          labelFormatter={(v) =>
+            dominantBin !== undefined
+              ? `Feature FFT bin ${Number(v).toFixed(0)}`
+              : `${Number(v).toFixed(2)} Hz`
+          }
           formatter={(v: number | string) => [Number(v).toFixed(4), "Magnitude"]}
         />
-        {dominantFrequency !== undefined && (
+        {selectedDominant !== undefined && (
           <ReferenceLine
-            x={dominantFrequency}
+            x={selectedDominant}
             stroke="var(--research)"
             strokeDasharray="4 4"
             label={{

@@ -33,6 +33,8 @@ export const Route = createFileRoute("/monitoring")({
 
 function Monitoring() {
   const { state, messages } = useMonitoringStream();
+  const latestMessage = messages[0];
+  const latestExplanation = latestMessage?.explanations.at(-1);
   const status = useSystemStatus();
   const traffic = useTraffic(60);
   const spectrum = useLiveSpectrum();
@@ -70,9 +72,21 @@ function Monitoring() {
             label="Streaming"
             state={state === "connected" ? "connected" : "disconnected"}
           />
+          {latestMessage && (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              Model: {latestMessage.meta.model_name}
+            </span>
+          )}
+          {latestMessage?.meta.is_dummy && <StatusBadge label="Dummy model" tone="warning" />}
           <span className="font-mono text-[11px] text-muted-foreground">
             {status.data?.wsUrl}
           </span>
+          {latestExplanation?.raw.is_stub && (
+            <StatusBadge label="Raw explanation stub" tone="warning" />
+          )}
+          {latestExplanation?.zone.is_stub && (
+            <StatusBadge label="Zone explanation stub" tone="warning" />
+          )}
           {state !== "connected" && (
             <StatusBadge
               label={
@@ -125,8 +139,8 @@ function Monitoring() {
           title="Frequency Spectrum"
           description={
             dominant !== undefined
-              ? `Dominant frequency ≈ ${dominant.toFixed(2)} Hz · range 0–500 Hz`
-              : "FFT magnitude across the current window"
+              ? `Dominant feature-vector FFT bin ${dominant.toFixed(0)} · dimensionless index`
+              : "Feature-vector FFT bins; not a packet/flow-time spectrum"
           }
         >
           {spectrum.isLoading && !liveSpectrum.length ? (
@@ -136,7 +150,7 @@ function Monitoring() {
           ) : (
             <SpectrumChart
               data={liveSpectrum}
-              {...(dominant !== undefined ? { dominantFrequency: dominant } : {})}
+              {...(dominant !== undefined ? { dominantBin: dominant } : {})}
             />
           )}
         </Panel>
@@ -155,9 +169,9 @@ function Monitoring() {
                 <span className="tabular w-20 text-muted-foreground">
                   {formatTime(d.timestamp)}
                 </span>
-                <span className="tabular font-mono">{d.source}</span>
+                <span className="tabular font-mono">{d.source?.trim() || "unavailable"}</span>
                 <span className="text-muted-foreground">→</span>
-                <span className="tabular font-mono">{d.destination}</span>
+                <span className="tabular font-mono">{d.destination?.trim() || "unavailable"}</span>
                 <span>{d.attackType}</span>
                 <PredictionBadge prediction={d.prediction} />
                 <span className="tabular">{formatPercent(d.confidence)}</span>

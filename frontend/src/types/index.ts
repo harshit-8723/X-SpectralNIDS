@@ -94,6 +94,28 @@ export interface TrafficPoint {
   throughputMbps: number | null;
 }
 
+export interface MonitoringPrediction {
+  row_index: number;
+  label: string;
+  prediction: Prediction;
+  confidence: number;
+  probabilities: Record<string, number>;
+}
+
+export interface MonitoringExplanation {
+  row_index: number;
+  label: string;
+  raw: { values: Record<string, number>; is_stub: boolean };
+  zone: { values: Record<string, number>; is_stub: boolean };
+}
+
+export interface MonitoringLatency {
+  feature_extraction_ms: number;
+  inference_ms: number;
+  explanation_ms: number;
+  total_ms: number;
+}
+
 export interface AttackCategory {
   category: string;
   count: number;
@@ -173,10 +195,10 @@ export interface LiveWindow {
   source: string;
   destination: string;
   protocol: string;
-  packets: number;
-  durationMs: number;
-  interArrivalMeanMs: number;
-  interArrivalStdMs: number;
+  packets: number | null;
+  durationMs: number | null;
+  interArrivalMeanMs: number | null;
+  interArrivalStdMs: number | null;
   prediction: Prediction;
   confidence: number;
 }
@@ -187,6 +209,11 @@ export interface MonitoringMessage {
   traffic: TrafficPoint;
   window: LiveWindow;
   frequency: FrequencyFeature[];
+  meta: { model_name: string; is_dummy: boolean };
+  predictions: MonitoringPrediction[];
+  explanations: MonitoringExplanation[];
+  latency: MonitoringLatency;
+  lagging: boolean;
   detection?: Detection;
 }
 
