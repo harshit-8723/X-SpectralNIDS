@@ -10,6 +10,7 @@ Press Ctrl+C to stop.
 """
 
 import asyncio
+import json
 import os
 
 import requests
@@ -39,7 +40,7 @@ async def listen(max_messages=20):
         count = 0
         try:
             while count < max_messages:
-                msg = await ws.recv()
+                msg = json.loads(await ws.recv())
                 print(
                     f"tick {msg['predictions'][0]['row_index']} "
                     f"model={msg['meta']['model_name']} "

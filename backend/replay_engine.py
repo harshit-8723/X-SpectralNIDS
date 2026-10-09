@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import math
 import time
+import uuid
 import warnings
 from datetime import datetime, timezone
 from pathlib import Path
@@ -87,6 +88,7 @@ class ReplayEngine:
         self._row_index = 0
         self._tick_index = 0
         self._last_error: str | None = None
+        self._run_id: str | None = None
         self._tick_seconds = self.config.tick_seconds
 
     @property
@@ -134,6 +136,7 @@ class ReplayEngine:
         self._cycle = cycle
         self._row_index = 0
         self._tick_index = 0
+        self._run_id = uuid.uuid4().hex
         self._last_error = None
         self._metadata = self._load_metadata(path)
         self._reader = self._open_reader(path)
@@ -371,7 +374,7 @@ class ReplayEngine:
             )
             row_id = _find_value(alert_input, ("row_id",))
             detection = {
-                "id": str(row_id) if row_id is not None else f"row-{row_index}",
+                "id": f"{self._run_id}:{row_id if row_id is not None else f'row-{row_index}'}",
                 "timestamp": emitted_at,
                 "source": _display_text(
                     _find_value(pd.Series(alert_metadata), METADATA_FIELD_NAMES["source"])

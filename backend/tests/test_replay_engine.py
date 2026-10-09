@@ -106,7 +106,8 @@ def test_emits_one_bounded_batch_and_joins_metadata_only_for_display(
     assert len(message["explanations"]) == 1
     assert message["explanations"][0]["raw"]["is_stub"] is True
     assert message["explanations"][0]["zone"]["is_stub"] is True
-    assert message["detection"]["id"] == "r2"
+    assert message["detection"]["id"].endswith(":r2")
+    assert message["detection"]["id"].split(":", maxsplit=1)[0]
 
 
 def test_missing_csv_fields_are_reported_as_null_or_unavailable(tmp_path, monkeypatch):
