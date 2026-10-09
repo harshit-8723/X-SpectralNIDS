@@ -1,5 +1,15 @@
 import { API_BASE_URL, USE_REAL_API } from "@/constants";
 
+class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
 /**
  * Thin HTTP client. Every service function funnels through here when
  * VITE_USE_REAL_API is enabled; otherwise the mock adapter is used.
@@ -12,7 +22,9 @@ export async function apiGet<T>(path: string, params?: Record<string, unknown>):
     }
   }
   const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`Request failed (${res.status}) for ${path}`);
+  if (!res.ok) {
+    throw new ApiRequestError(`Request failed (${res.status}) for ${path}`, res.status);
+  }
   return (await res.json()) as T;
 }
 
@@ -22,13 +34,22 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? null : JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`Request failed (${res.status}) for ${path}`);
+  if (!res.ok) {
+    throw new ApiRequestError(`Request failed (${res.status}) for ${path}`, res.status);
+  }
   return (await res.json()) as T;
 }
 
 /** Resolve real API when configured, otherwise a mock value (with latency). */
 export async function resolve<T>(real: () => Promise<T>, mock: () => T, delay = 220): Promise<T> {
-  if (USE_REAL_API) return real();
+  if (USE_REAL_API) {
+    try {
+      return await real();
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 404) return mock();
+      throw error;
+    }
+  }
   await new Promise((r) => setTimeout(r, delay));
   return mock();
 }

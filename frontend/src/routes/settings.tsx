@@ -107,7 +107,10 @@ function SettingsPage() {
         <div className="space-y-3">
           <Row label="API base URL" value={API_BASE_URL} />
           <Row label="WebSocket URL" value={WS_BASE_URL} />
-          <Row label="Data source" value={USE_REAL_API ? "Live backend" : "Mock adapter"} />
+          <Row
+            label="Data source"
+            value={USE_REAL_API ? "Live where supported; demo REST fallback" : "Demo data"}
+          />
           <div className="flex flex-wrap gap-3 pt-1">
             <ConnectionStatus
               label="Backend"
@@ -181,7 +184,7 @@ function SettingsPage() {
             }
           />
           <Row label="Model version" value={status?.modelVersion ?? "unknown"} />
-          <Row label="Mode" value={USE_REAL_API ? "Live" : "Demo / mock data"} />
+          <Row label="Mode" value={USE_REAL_API ? "Live + demo REST fallback" : "Demo data"} />
         </div>
         {!USE_REAL_API && (
           <div className="mt-3">

@@ -132,7 +132,10 @@ export function AppShell({
             )}
           </div>
           <div className="flex items-center gap-2">
-            {!USE_REAL_API && <StatusBadge label="Demo / Mock Data" tone="warning" />}
+            <StatusBadge
+              label={USE_REAL_API ? "Demo data on unsupported REST pages" : "Demo data"}
+              tone="warning"
+            />
             {actions}
           </div>
         </header>
