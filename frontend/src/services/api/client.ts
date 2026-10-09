@@ -10,11 +10,20 @@ class ApiRequestError extends Error {
   }
 }
 
+// Keep real calls limited to routes implemented by this backend. Add routes
+// here only when the backend actually provides them; the resolver below will
+// use each service's existing mock for every other path.
+const BACKEND_GET_PATHS = new Set(["/health"]);
+const BACKEND_POST_PATHS = new Set<string>();
+
 /**
  * Thin HTTP client. Every service function funnels through here when
  * VITE_USE_REAL_API is enabled; otherwise the mock adapter is used.
  */
 export async function apiGet<T>(path: string, params?: Record<string, unknown>): Promise<T> {
+  if (!BACKEND_GET_PATHS.has(path)) {
+    throw new ApiRequestError(`No backend GET route is configured for ${path}`, 404);
+  }
   const url = new URL(`${API_BASE_URL}${path}`, window.location.origin);
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value !== undefined && value !== null && value !== "") {
@@ -29,6 +38,9 @@ export async function apiGet<T>(path: string, params?: Record<string, unknown>):
 }
 
 export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  if (!BACKEND_POST_PATHS.has(path)) {
+    throw new ApiRequestError(`No backend POST route is configured for ${path}`, 404);
+  }
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -26,18 +26,22 @@ export class MonitoringSocket {
     this.manuallyClosed = false;
     this.setState(this.attempts === 0 ? "connecting" : "reconnecting");
 
+    let socket: WebSocket;
     try {
-      this.socket = new WebSocket(this.url);
+      socket = new WebSocket(this.url);
     } catch {
       this.scheduleReconnect();
       return;
     }
+    this.socket = socket;
 
-    this.socket.onopen = () => {
+    socket.onopen = () => {
+      if (this.socket !== socket) return;
       this.attempts = 0;
       this.setState("connected");
     };
-    this.socket.onmessage = (event) => {
+    socket.onmessage = (event) => {
+      if (this.socket !== socket) return;
       try {
         const parsed = JSON.parse(String(event.data)) as MonitoringMessage;
         this.messageHandlers.forEach((h) => h(parsed));
@@ -45,10 +49,11 @@ export class MonitoringSocket {
         /* ignore malformed frames */
       }
     };
-    this.socket.onerror = () => {
+    socket.onerror = () => {
       /* handled by onclose */
     };
-    this.socket.onclose = () => {
+    socket.onclose = () => {
+      if (this.socket !== socket) return;
       this.socket = null;
       if (!this.manuallyClosed) this.scheduleReconnect();
       else this.setState("disconnected");
@@ -59,8 +64,15 @@ export class MonitoringSocket {
     this.manuallyClosed = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
-    this.socket?.close();
+    const socket = this.socket;
     this.socket = null;
+    if (socket) {
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
+      socket.close();
+    }
     this.setState("disconnected");
   }
 
