@@ -78,6 +78,12 @@ function Monitoring() {
             </span>
           )}
           {latestMessage?.meta.is_dummy && <StatusBadge label="Dummy model" tone="warning" />}
+          {latestMessage && (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {`${latestMessage.predictions.length} rows · ${latestMessage.latency.total_ms.toFixed(1)} ms`}
+            </span>
+          )}
+          {latestMessage?.lagging && <StatusBadge label="Lagging" tone="warning" />}
           <span className="font-mono text-[11px] text-muted-foreground">
             {status.data?.wsUrl}
           </span>
