@@ -193,86 +193,122 @@ and `protocol`. If a matching row or field is absent, the backend sends
 
 ## Plugging in the real model
 
-Keep the exported model bundle on the local machine; never commit model
-weights, dataset rows, logs, `.env` files, or virtual environments. Copy the
-bundle contents into `backend/models/` and check that the directory contains
-`model_a.json`, `model_b.json`, `feature_order.json`, `scaler.json`,
-`label_map.json`, `metrics.json`, and `config.json`. Model B's `config.json`
-must include the training-time `fft.method` and `fft.k`; do not substitute
-guessed values.
+Real trained artifacts are located in local directories:
+- `backend/models/model_a_deduplicated/`:
+  - `model_a.json`: XGBoost model JSON (79 features).
+  - `feature_order.json`: JSON list of 79 feature names.
+  - `label_map.json`: JSON object mapping class indices to labels (15 classes, `0: "BENIGN"`).
+  - `metrics.json`: training and evaluation metrics metadata.
+- `backend/models/model_b_deduplicated/`:
+  - `model_b.json`: XGBoost model JSON (111 features = 79 unscaled + 32 FFT magnitudes).
+  - `feature_order.json`: JSON object containing `original_features` (79), `fft_features` (32: `FFT_MAG_BIN_1`..`FFT_MAG_BIN_32`), and `model_feature_order` (111).
+  - `scaler.json`: StandardScaler mean and scale arrays (79 elements, fit on training split only).
+  - `config.json`: specifies `selected_K: 32`, `fft_method: "scipy.fft.rfft"`, `fft_dc_coefficient_excluded: true`, and `original_features_kept_unscaled_in_model: true`.
+  - `label_map.json`: 15 classes identical to Model A.
+  - `sample_test_predictions.csv`: 10 reference rows with 79 raw features + expected and predicted labels.
+  - `metrics.json` and `validation_k_scores.json`: metadata.
 
-From the repository root, configure and restart the backend with the model that
-was actually trained:
+Never commit model weights, dataset files, `.env` files, or virtual environments to Git.
+
+### Real File Formats and Schemas
+
+1. **`feature_order.json`**:
+   - Model A format: A JSON list of 79 feature column names: `["Source Port", "Destination Port", "Protocol", ...]`.
+   - Model B format: A JSON dictionary with keys:
+     - `original_features`: list of 79 original feature names.
+     - `fft_features`: list of 32 names `["FFT_MAG_BIN_1", ..., "FFT_MAG_BIN_32"]`.
+     - `model_feature_order`: list of 111 names (original + FFT).
+   - Note on Ports and Protocol: `Source Port`, `Destination Port`, and `Protocol` are explicitly included at indices 0, 1, and 2 in the trained feature order.
+
+2. **`scaler.json`**:
+   - Dictionary containing `mean` (79 floats), `scale` (79 positive floats), and `input_feature_order` (79 strings).
+   - Used **only** to compute row-wise feature-vector FFT magnitudes for Model B. It is never applied to the original features entering the model.
+
+3. **`label_map.json`**:
+   - Contains `id_to_label` mapping string integer indices `"0"` through `"14"` to class names, and `label_to_id`.
+   - 15 classes total:
+     - 0: `BENIGN`
+     - 1: `Bot`
+     - 2: `DDoS`
+     - 3: `DoS GoldenEye`
+     - 4: `DoS Hulk`
+     - 5: `DoS Slowhttptest`
+     - 6: `DoS slowloris`
+     - 7: `FTP-Patator`
+     - 8: `Heartbleed`
+     - 9: `Infiltration`
+     - 10: `PortScan`
+     - 11: `SSH-Patator`
+     - 12: `Web Attack Brute Force`
+     - 13: `Web Attack Sql Injection`
+     - 14: `Web Attack XSS`
+   - Benign label string: exactly `"BENIGN"`. Alerts are triggered whenever predicted label != `"BENIGN"`.
+
+4. **`config.json`**:
+   - Defines Model B hyperparameters: `selected_K = 32`, `fft_method = "scipy.fft.rfft"`, `fft_dc_coefficient_excluded = true`.
+
+### Assumptions and Behavioral Contracts
+
+- **Model Inputs are Unscaled**: Both Model A and Model B take raw unscaled features in `feature_order`. Model A never uses a scaler or FFT. Model B standardizes the ordered 79 features exclusively to compute the feature-vector FFT.
+- **Feature-Vector FFT (Not Time Spectrum)**: Model B computes `scipy.fft.rfft` across the 79 standardized feature columns per row. The DC coefficient (bin 0) is excluded, and the first K=32 magnitudes (bins 1 to 32) are appended. This is an exploratory feature-vector transformation, **not** a packet arrival or flow-time spectrum; no claims of periodicity or heartbeat detection are made.
+- **Model B is Exploratory**: On the teammate's deduplicated test split, Model A achieved higher macro-F1 (0.9449 vs 0.9355). On the replay sample, Model A achieved 0.9925 macro-F1 vs Model B's 0.9875. Model B is explicitly labeled as "exploratory" and is never claimed to be superior to baseline Model A.
+- **Replay Sample (`backend/data/replay_sample.csv`)**: 5,018 rows extracted from `data/raw/` across all 8 days, stratified to include all 15 classes (including rare classes Heartbleed: 11, Sql Injection: 21, Infiltration: 36). Labeled: *"sample from raw data, not the teammate's test split"*. Both models achieve >=0.99 accuracy on this sample as expected for un-split evaluation.
+- **Explanations**: Raw SHAP and Zone-Grouped SHAP values in the replay stream remain stubs with `is_stub: true`.
+
+### Starting the Backend
+
+From the repository root:
 
 ```bash
 cd backend
 source venv/bin/activate
 export MODEL_NAME=model_b
 export MODEL_DIR="$PWD/models"
-export REPLAY_CSV="$PWD/sample.csv"
+export REPLAY_CSV="$PWD/data/replay_sample.csv"
 export ROWS_PER_TICK=10
 export TICK_SECONDS=1.0
 export FRONTEND_ORIGINS=http://localhost:5173
 uvicorn main:app --reload --port 8000
 ```
 
-For Model A, set `MODEL_NAME=model_a`. To check that startup loaded the chosen
-bundle, request:
+Verify backend health:
 
 ```bash
 curl http://localhost:8000/api/health
 ```
 
-The returned `modelVersion` must match the selected model name. Then check the
-dashboard's monitoring page and confirm that the WebSocket remains connected.
-For Model B, the plotted values are feature-vector FFT bins, not temporal
-frequencies; this integration makes no periodicity claim.
-
-To verify a bundle's predictions against reference data, place
-`sample_rows.csv` and `expected_outputs.json` beside the bundle files in
-`backend/models/`. The JSON must include `model_name`, `labels`, and
-`probabilities` produced and verified from that exact trained bundle. Run the
-parity test from the repository root:
+Run parity and sanity tests:
 
 ```bash
-backend/venv/bin/python -m pytest -q backend/tests/test_bundle_parity.py
+backend/venv/bin/python -m pytest -v backend/tests/test_bundle_parity.py
 ```
-
-The test is skipped until both reference files exist. Do not use the tiny
-synthetic fixture created for the plug-in dry run as a model result, baseline,
-or paper evidence; it only checks loading and dashboard compatibility.
 
 ## Frontend changes needed
 
-The frontend was inspected but not edited. Its current `MonitoringMessage` type
-does not include the required `meta`, `predictions`, `explanations`, `latency`,
-or `lagging` fields. Before rendering these fields, update the frontend types
-and monitoring view to accept them.
+The frontend source code in `frontend/` was inspected but not modified. The following changes/accommodations are noted for frontend integration:
 
-Also update the frontend contract to:
-
-- Allow `null` for unavailable traffic/window numeric values and detection `severity`.
-- Update `SeverityBadge` to handle a null/unavailable severity; the current component assumes one of four known severities and throws at runtime when given `null`.
-- Treat source/destination `unavailable` as a valid display string; do not infer IPs from a feature row.
-- Display Model B coordinates as feature-vector FFT bin indexes, not Hz. Model A and dummy messages may contain an empty `frequency` array.
-- Distinguish `is_stub: true` explanations and dummy predictions from real model output.
-- Keep `VITE_WS_BASE_URL=ws://localhost:8000/ws/monitoring` (or the deployment equivalent).
-- Set `VITE_API_BASE_URL=http://localhost:8000/api` when the health endpoint should be fetched from this backend; the frontend's default `/api` is same-origin and the current Vite config has no backend proxy.
-- The current `VITE_USE_REAL_API` switch applies to all REST services. Enabling it globally will call routes this backend does not yet implement; the frontend needs per-service real/mock selection or a health-only integration mode.
-- Do not enable `VITE_USE_REAL_API=true` for every frontend page until the additional REST endpoints used by analytics, detections, alerts, and reports are implemented. This backend currently implements the health and replay endpoints plus the monitoring WebSocket.
-- Treat the frontend's REST mock snapshots as mock data. In the current branch they can remain visible even while the WebSocket is connected, and must not be presented as backend model results.
-- Use a stable tick/detection key that remains unique across replay restarts; backend detection IDs now include a replay-run identifier.
+1. **REST API Isolation / Mock Fallback**:
+   - `VITE_USE_REAL_API=true` activates real HTTP calls across all frontend services. The backend currently implements `/api/health`, `/health`, `/replay/*`, and `/ws/monitoring`.
+   - Pages requiring additional endpoints (`/alerts`, `/analytics`, `/detections`, `/reports`) will encounter 404s if real API mode is enabled globally.
+   - **Recommended change**: Implement per-service feature flags or keep mock data active for analytics/alerts while pointing monitoring and health checks to the real backend.
+2. **Frequency Coordinate Display**:
+   - `SpectrumChart.tsx` currently falls back to displaying `${v} Hz` when `dominantBin` is not explicitly provided.
+   - **Recommended change**: Update the tooltip label fallback from `"Hz"` to `"Feature FFT bin index"` or `"Bin ${v}"` to reflect dimensionless feature-vector bins rather than physical frequency.
+3. **Network Port Binding**:
+   - In sandboxed or restricted developer environments, Vite's dev server should be invoked with `--host 127.0.0.1 --port 5173` to prevent port conflict loops.
+4. **WebSocket URL Configuration**:
+   - Maintain `VITE_WS_BASE_URL=ws://localhost:8000/ws/monitoring` in `frontend/.env`.
 
 ## Local checks
 
-From the repository root, run the backend with its project venv:
+From the repository root, run the test suite:
 
 ```bash
-cd backend
-source venv/bin/activate
-uvicorn main:app --reload --port 8000
+backend/venv/bin/python -m pytest -v
 ```
 
-In another terminal, run `python test_client.py`. The server logs a connection
-when a WebSocket client connects. The automated API and WebSocket tests are in
-`backend/tests/`.
+To run test client against a live server:
+
+```bash
+backend/venv/bin/python backend/test_client.py
+```
