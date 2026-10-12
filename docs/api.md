@@ -191,6 +191,57 @@ display columns include `source`/`Source IP`, `destination`/`Destination IP`,
 and `protocol`. If a matching row or field is absent, the backend sends
 `unavailable`.
 
+## Plugging in the real model
+
+Keep the exported model bundle on the local machine; never commit model
+weights, dataset rows, logs, `.env` files, or virtual environments. Copy the
+bundle contents into `backend/models/` and check that the directory contains
+`model_a.json`, `model_b.json`, `feature_order.json`, `scaler.json`,
+`label_map.json`, `metrics.json`, and `config.json`. Model B's `config.json`
+must include the training-time `fft.method` and `fft.k`; do not substitute
+guessed values.
+
+From the repository root, configure and restart the backend with the model that
+was actually trained:
+
+```bash
+cd backend
+source venv/bin/activate
+export MODEL_NAME=model_b
+export MODEL_DIR="$PWD/models"
+export REPLAY_CSV="$PWD/sample.csv"
+export ROWS_PER_TICK=10
+export TICK_SECONDS=1.0
+export FRONTEND_ORIGINS=http://localhost:5173
+uvicorn main:app --reload --port 8000
+```
+
+For Model A, set `MODEL_NAME=model_a`. To check that startup loaded the chosen
+bundle, request:
+
+```bash
+curl http://localhost:8000/api/health
+```
+
+The returned `modelVersion` must match the selected model name. Then check the
+dashboard's monitoring page and confirm that the WebSocket remains connected.
+For Model B, the plotted values are feature-vector FFT bins, not temporal
+frequencies; this integration makes no periodicity claim.
+
+To verify a bundle's predictions against reference data, place
+`sample_rows.csv` and `expected_outputs.json` beside the bundle files in
+`backend/models/`. The JSON must include `model_name`, `labels`, and
+`probabilities` produced and verified from that exact trained bundle. Run the
+parity test from the repository root:
+
+```bash
+backend/venv/bin/python -m pytest -q backend/tests/test_bundle_parity.py
+```
+
+The test is skipped until both reference files exist. Do not use the tiny
+synthetic fixture created for the plug-in dry run as a model result, baseline,
+or paper evidence; it only checks loading and dashboard compatibility.
+
 ## Frontend changes needed
 
 The frontend was inspected but not edited. Its current `MonitoringMessage` type
