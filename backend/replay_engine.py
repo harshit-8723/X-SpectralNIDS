@@ -237,13 +237,18 @@ class ReplayEngine:
     def _frequency_for(self, row: pd.Series) -> list[dict]:
         frequency = []
         for column, value in row.items():
-            if not str(column).startswith("fft_magnitude_"):
+            col_name = str(column)
+            if col_name.startswith("FFT_MAG_BIN_"):
+                prefix = "FFT_MAG_BIN_"
+            elif col_name.startswith("fft_magnitude_"):
+                prefix = "fft_magnitude_"
+            else:
                 continue
             magnitude = _finite_number(value)
             if magnitude is None:
                 continue
             try:
-                bin_index = int(str(column).removeprefix("fft_magnitude_"))
+                bin_index = int(col_name.removeprefix(prefix))
             except ValueError:
                 continue
             frequency.append(

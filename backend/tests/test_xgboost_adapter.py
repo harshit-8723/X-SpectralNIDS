@@ -10,7 +10,10 @@ def test_xgboost_adapter_predicts_using_bundle_label_order(synthetic_model_bundl
         type("Config", (), {"model_name": "model_a"})(), bundle
     )
     labels, probabilities = adapter.predict_batch(
-        pd.DataFrame([[0.0, 0.0], [1.0, 1.0]], columns=bundle.feature_order)
+        pd.DataFrame(
+            [[0.0, 0.0, 0.0, 0.0], [1.0, 1.0, 1.0, 1.0]],
+            columns=bundle.feature_order,
+        )
     )
 
     assert isinstance(adapter, XGBoostModelAdapter)

@@ -17,12 +17,12 @@ def synthetic_model_bundle(tmp_path):
     """
     fixture_features = np.asarray(
         [
-            [0.0, 0.0],
-            [0.1, 0.2],
-            [0.2, 0.1],
-            [0.8, 0.9],
-            [0.9, 0.8],
-            [1.0, 1.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.1, 0.2, 0.1, 0.2],
+            [0.2, 0.1, 0.2, 0.1],
+            [0.8, 0.9, 0.8, 0.9],
+            [0.9, 0.8, 0.9, 0.8],
+            [1.0, 1.0, 1.0, 1.0],
         ],
         dtype=np.float32,
     )
@@ -40,9 +40,9 @@ def synthetic_model_bundle(tmp_path):
     model_a.fit(fixture_features, fixture_labels)
     model_a.save_model(tmp_path / "model_a.json")
 
-    fixture_model_b_features = np.column_stack(
-        [fixture_features, np.abs(np.fft.rfft(fixture_features, axis=1))[:, :2]]
-    ).astype(np.float32)
+    # Feature-vector FFT: drop DC coefficient (index 0), take first K=2 magnitudes
+    fft_mags = np.abs(np.fft.rfft(fixture_features, axis=1))[:, 1:3]
+    fixture_model_b_features = np.column_stack([fixture_features, fft_mags]).astype(np.float32)
     model_b = XGBClassifier(
         n_estimators=2,
         max_depth=1,
@@ -56,8 +56,8 @@ def synthetic_model_bundle(tmp_path):
     model_b.save_model(tmp_path / "model_b.json")
 
     bundle_files = {
-        "feature_order.json": ["feature_a", "feature_b"],
-        "scaler.json": {"mean": [0.0, 0.0], "scale": [1.0, 1.0]},
+        "feature_order.json": ["feature_a", "feature_b", "feature_c", "feature_d"],
+        "scaler.json": {"mean": [0.0, 0.0, 0.0, 0.0], "scale": [1.0, 1.0, 1.0, 1.0]},
         "label_map.json": {"0": "BENIGN", "1": "TEST_ATTACK"},
         "metrics.json": {"fixture_only": True},
         "config.json": {"fft": {"method": "rfft_magnitude", "k": 2}},
