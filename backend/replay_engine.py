@@ -272,9 +272,14 @@ class ReplayEngine:
     ) -> dict:
         prediction_rows = []
         benign_count = 0
+        benign_label = next(
+            (l for l in self.adapter.class_labels if l.strip().casefold() == "benign"),
+            "BENIGN",
+        )
         alert_rows = []
         for offset, (label, probability_row) in enumerate(zip(labels, probabilities)):
-            is_benign = label.strip().casefold() == "benign"
+            # INTEGRATION POINT: An alert is any predicted label != benign label from label_map
+            is_benign = (label == benign_label) or (label.strip().casefold() == "benign")
             confidence = max(probability_row) if probability_row else 0.0
             row_index = self._row_index + offset
             prediction_rows.append(
@@ -360,7 +365,7 @@ class ReplayEngine:
             "durationMs": duration_ms,
             "interArrivalMeanMs": iat_mean_ms,
             "interArrivalStdMs": iat_std_ms,
-            "prediction": "normal" if last_label.strip().casefold() == "benign" else "attack",
+            "prediction": "normal" if ((last_label == benign_label) or (last_label.strip().casefold() == "benign")) else "attack",
             "confidence": float(last_confidence),
         }
 
