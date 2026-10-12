@@ -6,3 +6,5 @@ frontend/dist/
 venv/
 .github
 .vscode
+models
+backend/models/
