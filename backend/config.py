@@ -71,7 +71,10 @@ class BackendConfig:
 
         origins = tuple(
             origin.strip()
-            for origin in values.get("FRONTEND_ORIGINS", "http://localhost:5173").split(",")
+            for origin in values.get(
+                "FRONTEND_ORIGINS",
+                "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080",
+            ).split(",")
             if origin.strip()
         )
         if not origins:

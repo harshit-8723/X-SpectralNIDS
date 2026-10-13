@@ -16,7 +16,7 @@ The backend reads these environment variables at startup:
 | `REPLAY_CSV` | `backend/sample.csv` | CSV read by the bounded replay engine. |
 | `ROWS_PER_TICK` | `10` | Maximum input rows in one tick. |
 | `TICK_SECONDS` | `1.0` | Minimum cadence between ticks when the previous tick finishes on time. |
-| `FRONTEND_ORIGINS` | `http://localhost:5173` | Comma-separated browser origins allowed by HTTP CORS and the WebSocket origin check. |
+| `FRONTEND_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080` | Comma-separated browser origins allowed by HTTP CORS and the WebSocket origin check. |
 
 For a real model, `MODEL_DIR` must contain all of the following files. The model
 weights are local artifacts and must not be committed:
@@ -267,7 +267,7 @@ export MODEL_DIR="$PWD/models"
 export REPLAY_CSV="$PWD/data/replay_sample.csv"
 export ROWS_PER_TICK=10
 export TICK_SECONDS=1.0
-export FRONTEND_ORIGINS=http://localhost:5173
+export FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080
 uvicorn main:app --reload --port 8000
 ```
 
