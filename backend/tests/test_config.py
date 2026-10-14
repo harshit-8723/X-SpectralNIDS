@@ -24,6 +24,7 @@ def test_config_reads_supported_model_and_runtime_settings(tmp_path):
         "http://localhost:5173",
         "https://dashboard.example",
     )
+    assert config.auto_start_replay is False
 
 
 @pytest.mark.parametrize("model_name", ["", "other", "MODEL_C"])

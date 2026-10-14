@@ -17,6 +17,7 @@ import {
   fetchRawExplanation,
   fetchZoneExplanation,
 } from "@/services/api/explanationApi";
+import { startReplay, stopReplay } from "@/services/api/replayApi";
 import { fetchSystemStatus } from "@/services/api/systemApi";
 import type { AlertStatus, DetectionFilters } from "@/types";
 
@@ -68,12 +69,26 @@ export const useZoneExplanation = (id: string) =>
     enabled: !!id,
   });
 
-export const useSystemStatus = () =>
+export const useSystemStatus = (refetchInterval = 30_000) =>
   useQuery({
     queryKey: ["system", "health"],
     queryFn: fetchSystemStatus,
-    refetchInterval: 30_000,
+    refetchInterval,
   });
+
+export function useReplayControls() {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["system", "health"] });
+  const start = useMutation({
+    mutationFn: () => startReplay(true),
+    onSuccess: invalidate,
+  });
+  const stop = useMutation({
+    mutationFn: stopReplay,
+    onSuccess: invalidate,
+  });
+  return { start, stop };
+}
 
 export const useAlerts = () => useQuery({ queryKey: ["alerts"], queryFn: fetchAlerts });
 

@@ -1,4 +1,3 @@
-import { USE_REAL_API } from "@/constants";
 import { useSystemStatus } from "@/hooks/useNids";
 import { cn } from "@/lib/utils";
 
@@ -27,33 +26,33 @@ function Item({ label, value, tone }: { label: string; value: string; tone: Tone
 /** Compact SOC status bar. Reflects only real state from useSystemStatus. */
 export function StatusStrip() {
   const { data: status, isLoading } = useSystemStatus();
-  const demo = !USE_REAL_API || !status?.backendConnected;
+  const live = Boolean(status?.backendConnected);
 
   const items: { label: string; value: string; tone: Tone }[] = [
     {
       label: "System",
-      value: isLoading ? "Checking…" : "Operational (UI)",
-      tone: isLoading ? "muted" : "normal",
+      value: isLoading ? "Checking…" : live ? "Operational" : "UI only",
+      tone: isLoading ? "muted" : live ? "normal" : "warning",
     },
     {
       label: "Backend",
-      value: status?.backendConnected ? "Connected" : "Not connected — demo mode",
-      tone: status?.backendConnected ? "normal" : "warning",
+      value: live ? "Connected" : "Not connected",
+      tone: live ? "normal" : "warning",
     },
     {
       label: "Model",
       value: status?.modelVersion ?? "Unknown",
-      tone: status?.backendConnected ? "normal" : "muted",
+      tone: live ? "normal" : "muted",
     },
     {
       label: "Stream",
-      value: status?.streaming ? "Streaming" : demo ? "Demo stream" : "Idle",
+      value: status?.streaming ? "Streaming" : live ? "Idle" : "Offline",
       tone: status?.streaming ? "normal" : "warning",
     },
     {
       label: "FFT",
-      value: status?.backendConnected ? "Available" : "Demo spectrum",
-      tone: status?.backendConnected ? "normal" : "warning",
+      value: live ? "Model B bins" : "Unavailable",
+      tone: live ? "normal" : "warning",
     },
   ];
 

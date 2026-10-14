@@ -13,8 +13,8 @@ class ApiRequestError extends Error {
 // Keep real calls limited to routes implemented by this backend. Add routes
 // here only when the backend actually provides them; the resolver below will
 // use each service's existing mock for every other path.
-const BACKEND_GET_PATHS = new Set(["/health"]);
-const BACKEND_POST_PATHS = new Set<string>();
+const BACKEND_GET_PATHS = new Set(["/health", "/replay/status"]);
+const BACKEND_POST_PATHS = new Set(["/replay/start", "/replay/stop"]);
 
 /**
  * Thin HTTP client. Every service function funnels through here when

@@ -133,8 +133,22 @@ export function AppShell({
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge
-              label={USE_REAL_API ? "Demo data on unsupported REST pages" : "Demo data"}
-              tone="warning"
+              label={
+                status?.streaming
+                  ? "Live CICIDS replay"
+                  : status?.backendConnected
+                    ? "Backend ready · replay idle"
+                  : USE_REAL_API
+                    ? "Backend offline"
+                    : "Demo data"
+              }
+              tone={
+                status?.streaming
+                  ? "info"
+                  : status?.backendConnected
+                    ? "muted"
+                    : "warning"
+              }
             />
             {actions}
           </div>

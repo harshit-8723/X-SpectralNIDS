@@ -45,11 +45,7 @@ export const SpectrumChart = memo(function SpectrumChart({
         <YAxis {...axisStyle} width={48} tickFormatter={(v) => Number(v).toFixed(2)} />
         <Tooltip
           {...chartTooltipStyle}
-          labelFormatter={(v) =>
-            dominantBin !== undefined
-              ? `Feature FFT bin ${Number(v).toFixed(0)}`
-              : `${Number(v).toFixed(2)} Hz`
-          }
+          labelFormatter={(v) => `Feature FFT bin ${Number(v).toFixed(0)}`}
           formatter={(v: number | string) => [Number(v).toFixed(4), "Magnitude"]}
         />
         {selectedDominant !== undefined && (

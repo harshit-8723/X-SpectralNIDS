@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from config import BackendConfig
+from config import BackendConfig, is_allowed_origin
 from model_adapter import create_model_adapter
 from model_bundle import load_model_bundle
 from replay_engine import ReplayEngine
@@ -80,13 +81,28 @@ def create_app(config: BackendConfig | None = None) -> FastAPI:
         bundle=bundle,
     )
 
-    application = FastAPI(title="X-SpectralNIDS Backend")
+    @asynccontextmanager
+    async def lifespan(_application: FastAPI):
+        if settings.auto_start_replay:
+            try:
+                await engine.start(cycle=True)
+                LOGGER.info(
+                    "Auto-started CICIDS2017 replay",
+                    extra={"file": engine.status["file"], "model": settings.model_name},
+                )
+            except Exception:
+                LOGGER.exception("Auto-start replay failed")
+        yield
+        await engine.stop()
+
+    application = FastAPI(title="X-SpectralNIDS Backend", lifespan=lifespan)
     application.state.config = settings
     application.state.manager = manager
     application.state.engine = engine
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.frontend_origins),
+        allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -108,25 +124,28 @@ def create_app(config: BackendConfig | None = None) -> FastAPI:
         )
 
     @application.post("/replay/start")
-    async def start_replay(request: StartReplayRequest):
+    @application.post("/api/replay/start")
+    async def start_replay(request: StartReplayRequest = StartReplayRequest()):
         try:
             await engine.start(file=request.file, pace=request.pace, cycle=request.cycle)
             return {"status": "started", **engine.status}
         except (FileNotFoundError, RuntimeError, ValueError) as exc:
-            return {"status": "error", "detail": str(exc)}
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @application.post("/replay/stop")
+    @application.post("/api/replay/stop")
     async def stop_replay():
         await engine.stop()
         return {"status": "stopped", **engine.status}
 
     @application.get("/replay/status")
+    @application.get("/api/replay/status")
     async def replay_status():
         return engine.status
 
     async def monitoring_websocket(websocket: WebSocket) -> None:
         origin = websocket.headers.get("origin")
-        if origin and origin not in settings.frontend_origins:
+        if not is_allowed_origin(origin, settings.frontend_origins):
             LOGGER.warning(
                 "Rejected WebSocket origin",
                 extra={"path": websocket.url.path, "origin": origin},

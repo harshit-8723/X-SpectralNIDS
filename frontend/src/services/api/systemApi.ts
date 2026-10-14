@@ -1,19 +1,19 @@
 import { API_BASE_URL, WS_BASE_URL } from "@/constants";
-import { apiGet, resolve } from "./client";
+import { apiGet } from "./client";
 import type { SystemStatus } from "@/types";
 
-/** GET /api/health */
+function offlineStatus(): SystemStatus {
+  return {
+    backendConnected: false,
+    websocketConnected: false,
+    streaming: false,
+    modelVersion: "offline",
+    apiUrl: API_BASE_URL,
+    wsUrl: WS_BASE_URL,
+  };
+}
+
+/** GET /api/health — always hits the replay backend; never substitutes mock health. */
 export function fetchSystemStatus(): Promise<SystemStatus> {
-  return resolve(
-    () => apiGet<SystemStatus>("/health"),
-    () => ({
-      backendConnected: false,
-      websocketConnected: false,
-      streaming: false,
-      modelVersion: "xgboost-fft-v0.1 (mock)",
-      apiUrl: API_BASE_URL,
-      wsUrl: WS_BASE_URL,
-    }),
-    150,
-  );
+  return apiGet<SystemStatus>("/health").catch(() => offlineStatus());
 }

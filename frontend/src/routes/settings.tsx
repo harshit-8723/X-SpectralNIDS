@@ -109,7 +109,13 @@ function SettingsPage() {
           <Row label="WebSocket URL" value={WS_BASE_URL} />
           <Row
             label="Data source"
-            value={USE_REAL_API ? "Live where supported; demo REST fallback" : "Demo data"}
+            value={
+              status?.backendConnected
+                ? "CICIDS2017 replay (live monitoring)"
+                : USE_REAL_API
+                  ? "Backend offline"
+                  : "Demo data"
+            }
           />
           <div className="flex flex-wrap gap-3 pt-1">
             <ConnectionStatus
@@ -184,11 +190,18 @@ function SettingsPage() {
             }
           />
           <Row label="Model version" value={status?.modelVersion ?? "unknown"} />
-          <Row label="Mode" value={USE_REAL_API ? "Live + demo REST fallback" : "Demo data"} />
+          <Row
+            label="Mode"
+            value={
+              status?.backendConnected
+                ? "Live CICIDS replay + mock REST for analytics pages"
+                : "Demo data"
+            }
+          />
         </div>
-        {!USE_REAL_API && (
+        {!status?.backendConnected && (
           <div className="mt-3">
-            <StatusBadge label="Demo / Mock Data" tone="warning" />
+            <StatusBadge label="Backend offline — mock REST pages only" tone="warning" />
           </div>
         )}
       </Panel>

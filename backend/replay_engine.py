@@ -112,7 +112,7 @@ class ReplayEngine:
     ) -> None:
         """Start configured replay; legacy file/pace args remain temporarily accepted."""
         if self._running:
-            raise RuntimeError("Replay is already running")
+            return
 
         path = Path(file).expanduser() if file is not None else self.config.replay_csv
         if not path.is_absolute():

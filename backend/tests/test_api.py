@@ -106,6 +106,40 @@ def test_legacy_websocket_route_remains_available(tmp_path):
     assert application.state.manager.active == []
 
 
+def test_replay_start_alias_under_api_prefix(tmp_path):
+    csv_path = tmp_path / "sample.csv"
+    _sample_csv(csv_path)
+    client = TestClient(create_app(_config(csv_path)))
+
+    start = client.post("/api/replay/start", json={"cycle": False})
+    assert start.status_code == 200
+    assert start.json()["status"] == "started"
+    assert start.json()["running"] is True
+
+
+def test_replay_start_is_idempotent(tmp_path):
+    csv_path = tmp_path / "sample.csv"
+    _sample_csv(csv_path)
+    client = TestClient(create_app(_config(csv_path)))
+
+    first = client.post("/replay/start", json={"cycle": True})
+    second = client.post("/replay/start", json={"cycle": True})
+    assert first.json()["status"] == "started"
+    assert second.json()["status"] == "started"
+    assert second.json()["running"] is True
+
+
+def test_monitoring_websocket_allows_local_dev_port(tmp_path):
+    csv_path = tmp_path / "sample.csv"
+    _sample_csv(csv_path)
+    client = TestClient(create_app(_config(csv_path)))
+
+    with client.websocket_connect(
+        "/ws/monitoring", headers={"origin": "http://localhost:5999"}
+    ) as websocket:
+        assert websocket is not None
+
+
 def test_websocket_rejects_unconfigured_origin(tmp_path):
     csv_path = tmp_path / "sample.csv"
     _sample_csv(csv_path)

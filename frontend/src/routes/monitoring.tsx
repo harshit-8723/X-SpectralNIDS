@@ -1,15 +1,15 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { Panel } from "@/components/common/Panel";
 import { StatCard } from "@/components/common/StatCard";
 import { ConnectionStatus } from "@/components/common/ConnectionStatus";
-import { EmptyState, ErrorState, LoadingState } from "@/components/common/States";
+import { EmptyState } from "@/components/common/States";
 import { PredictionBadge, SeverityBadge, StatusBadge } from "@/components/common/Badges";
 import { TrafficChart } from "@/components/charts/TrafficChart";
 import { SpectrumChart } from "@/components/charts/SpectrumChart";
 import { useMonitoringStream } from "@/hooks/useMonitoringStream";
-import { useLatestDetections, useLiveSpectrum, useSystemStatus, useTraffic } from "@/hooks/useNids";
+import { useReplayControls, useSystemStatus } from "@/hooks/useNids";
 import { formatNumber, formatPercent, formatTime } from "@/utils/format";
 
 export const Route = createFileRoute("/monitoring")({
@@ -35,31 +35,55 @@ function Monitoring() {
   const { state, messages } = useMonitoringStream();
   const latestMessage = messages[0];
   const latestExplanation = latestMessage?.explanations.at(-1);
-  const status = useSystemStatus();
-  const traffic = useTraffic(60);
-  const spectrum = useLiveSpectrum();
-  const feed = useLatestDetections(12);
+  const status = useSystemStatus(2000);
+  const replay = useReplayControls();
+  const autoStartAttempted = useRef(false);
+
+  useEffect(() => {
+    if (state !== "connected" || autoStartAttempted.current) return;
+    autoStartAttempted.current = true;
+    replay.start.mutate();
+  }, [state, replay.start]);
 
   const livePoints = useMemo(
-    () => (messages.length ? [...messages].reverse().map((m) => m.traffic) : (traffic.data ?? [])),
-    [messages, traffic.data],
+    () => [...messages].reverse().map((m) => m.traffic),
+    [messages],
   );
 
-  const liveSpectrum = messages[0]?.frequency ?? spectrum.data ?? [];
+  const liveSpectrum = latestMessage?.frequency ?? [];
   const dominant = useMemo(() => {
     if (!liveSpectrum.length) return undefined;
     return liveSpectrum.reduce((a, b) => (b.magnitude > a.magnitude ? b : a)).frequency;
   }, [liveSpectrum]);
 
   const last = livePoints.at(-1);
-  const feedItems = messages.length
-    ? messages.flatMap((m) => (m.detection ? [m.detection] : []))
-    : (feed.data ?? []);
+  const feedItems = messages.flatMap((m) => (m.detection ? [m.detection] : []));
+  const streaming = Boolean(status.data?.streaming);
 
   return (
     <AppShell
       title="Live Monitoring"
-      subtitle="Streaming console — falls back to the mock dataset while the backend is offline"
+      subtitle="CICIDS2017 flow replay through the trained model — not mock dashboard data"
+      actions={
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="rounded border border-info/50 bg-info/10 px-2 py-1 text-[11px] text-info hover:bg-info/20"
+            disabled={replay.start.isPending || streaming}
+            onClick={() => replay.start.mutate()}
+          >
+            {streaming ? "Replay running" : "Start replay"}
+          </button>
+          <button
+            type="button"
+            className="rounded border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent"
+            disabled={replay.stop.isPending || !streaming}
+            onClick={() => replay.stop.mutate()}
+          >
+            Stop
+          </button>
+        </div>
+      }
     >
       <Panel title="Connection Status">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -70,7 +94,7 @@ function Monitoring() {
           <ConnectionStatus label="WebSocket" state={state} />
           <ConnectionStatus
             label="Streaming"
-            state={state === "connected" ? "connected" : "disconnected"}
+            state={streaming ? "connected" : "disconnected"}
           />
           {latestMessage && (
             <span className="font-mono text-[11px] text-muted-foreground">
@@ -97,9 +121,15 @@ function Monitoring() {
             <StatusBadge
               label={
                 state === "reconnecting" || state === "connecting"
-                  ? "Reconnecting to live monitoring…"
-                  : "Live stream unavailable — showing dataset snapshot"
+                  ? "Connecting to live monitoring…"
+                  : "Backend stream unavailable — start the FastAPI server on port 8000"
               }
+              tone="warning"
+            />
+          )}
+          {replay.start.isError && (
+            <StatusBadge
+              label={(replay.start.error as Error).message || "Replay failed to start"}
               tone="warning"
             />
           )}
@@ -108,7 +138,7 @@ function Monitoring() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Packets / sec"
+          label="Flows / tick"
           value={last ? formatNumber(last.normal + last.suspicious) : "—"}
         />
         <StatCard
@@ -131,11 +161,9 @@ function Monitoring() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Panel title="Live Traffic" description="60-second rolling window">
-          {traffic.isLoading && !messages.length ? (
-            <LoadingState />
-          ) : traffic.isError && !messages.length ? (
-            <ErrorState message={(traffic.error as Error).message} onRetry={traffic.refetch} />
+        <Panel title="Live Traffic" description="Rolling window of replayed CICIDS2017 flows">
+          {livePoints.length === 0 ? (
+            <EmptyState message="Waiting for replay ticks. Click Start replay if the backend is running." />
           ) : (
             <TrafficChart data={livePoints} height={240} />
           )}
@@ -149,10 +177,8 @@ function Monitoring() {
               : "Feature-vector FFT bins; not a packet/flow-time spectrum"
           }
         >
-          {spectrum.isLoading && !liveSpectrum.length ? (
-            <LoadingState />
-          ) : liveSpectrum.length === 0 ? (
-            <EmptyState message="No spectrum data available." />
+          {liveSpectrum.length === 0 ? (
+            <EmptyState message="Spectrum appears once Model B emits FFT magnitude bins." />
           ) : (
             <SpectrumChart
               data={liveSpectrum}
@@ -164,7 +190,7 @@ function Monitoring() {
 
       <Panel title="Live Detection Feed" description="Newest events appear first">
         {feedItems.length === 0 ? (
-          <EmptyState message="No detections received yet." />
+          <EmptyState message="No attack predictions in the current replay window yet." />
         ) : (
           <ul className="divide-y divide-border/60">
             {feedItems.map((d) => (
